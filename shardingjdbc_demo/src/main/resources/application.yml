@@ -1,0 +1,57 @@
+server:
+  port: 56081
+  #servlet:
+   # context-path: /sharding-jdbc-simple-demo
+spring:
+  application:
+    name: sharding-jdbc-simple-demo
+  http:
+    encoding:
+      enabled: true
+      charset: utf-8
+      force: true
+  main:
+    allow-bean-definition-overriding: true
+    #sharding-jdbc配置
+  shardingsphere:
+      datasource:
+        names: m1,m2 #指定数据源(可以配置多个名称，名称之间使用','相隔)
+        m1:
+          type: com.alibaba.druid.pool.DruidDataSource  #连接池类型
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/order_db_1?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8
+          username: root
+          password: root
+        m2:
+          type: com.alibaba.druid.pool.DruidDataSource  #连接池类型
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://localhost:3306/order_db_2?serverTimezone=UTC&useSSL=false&useUnicode=true&characterEncoding=UTF-8
+          username: root
+          password: root
+      sharding:
+        tables:
+          t_order:
+            key-generator:
+              column: order_id  #主键
+              type: SNOWFLAKE  #指定主键生成策略为SNOWFLAKE
+            actual-data-nodes: m$->{1..2}.t_order_$->{1..2} #指定t_order表的数据分布情况，配置数据节点
+            table-strategy: #分表策略，数据库所有表都需要配置
+              inline:
+                 sharding-column: order_id
+                 algorithm-expression: t_order_$->{order_id%2+1}
+            database-strategy: #分库策略配置
+              inline:
+                  sharding-column: user_id
+                  algorithm-expression: m$->{user_id%2+1}
+       #公共表 需要在所有分库中创建公共表 broadcast-tables:
+      props:
+        sql:
+          show: true #打印执行的sql
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+swagger:
+  enable: true
+logging:
+  level:
+    root: info
